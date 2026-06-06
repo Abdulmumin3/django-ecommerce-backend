@@ -1,3 +1,5 @@
+from decimal import Decimal
+import uuid
 from django.shortcuts import get_object_or_404, render
 from rest_framework.decorators import api_view, permission_classes
 from .models import Cart, Product, CartItem
@@ -106,3 +108,15 @@ def user_info(request):
     user = request.user
     serializer = UserSerializer(user)
     return Response(serializer.data)
+
+def initiate_payment(request):
+    if request.user:
+        try:
+            tx_ref = str(uuid.uuid4())
+            cart_code = request.data.get("cart_code")
+            cart = Cart.objects.get(cart_code=cart_code, paid=False)
+            user = request.user
+            
+            amount = sum([item.quantity * item.product.price for item in cart.items.all()])
+            tax = Decimal("4.00")
+            currency = "USD"
